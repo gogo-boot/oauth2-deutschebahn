@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
@@ -12,6 +13,8 @@ import (
 var (
 	oauthConfig *oauth2.Config
 )
+
+var ctx = context.Background()
 
 func init() {
 	oauthConfig = &oauth2.Config{
@@ -62,7 +65,7 @@ func getUserInfo(state string, code string) ([]byte, error) {
 	if state != oauthStateString {
 		return nil, fmt.Errorf("invalid oauth state")
 	}
-	token, err := oauthConfig.Exchange(oauth2.NoContext, code)
+	token, err := oauthConfig.Exchange(ctx, code)
 	if err != nil {
 		return nil, fmt.Errorf("code exchange failed: %s", err.Error())
 	}
