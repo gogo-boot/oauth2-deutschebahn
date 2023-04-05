@@ -28,6 +28,7 @@ func init() {
 func main() {
 	http.HandleFunc("/", handleMain)
 	http.HandleFunc("/login", handleLogin)
+	http.HandleFunc("/private/external", handleCallback)
 	http.HandleFunc("/callback", handleCallback)
 	http.ListenAndServe(":8080", nil)
 }
@@ -35,7 +36,11 @@ func main() {
 func handleMain(w http.ResponseWriter, r *http.Request) {
 	var htmlIndex = `<html>
 <body>
-	<a href="/login">Log In</a>
+	 <a href="/private/info">show token info</a>
+		<br><a href="/login">login</a>
+		<br><a href="/logout">logout</a>
+		<br><a href="/private/external">call external service</a>
+		<br><a href="/private/only-with-role">only with role</a>
 </body>
 </html>`
 	fmt.Fprintf(w, htmlIndex)
@@ -47,7 +52,7 @@ var (
 )
 
 func handleLogin(w http.ResponseWriter, r *http.Request) {
-	url := oauthConfig.AuthCodeURL(oauthStateString)
+	url := oauthConfig.AuthCodeURL(oauthStateString, oauth2.AccessTypeOnline)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
@@ -69,17 +74,8 @@ func getUserInfo(state string, code string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("code exchange failed: %s", err.Error())
 	}
-
-	//start replacement
-	client := &http.Client{
-		//CheckRedirect: redirectPolicyFunc,
-	}
-	req, err := http.NewRequest("GET", "https://gateway.hub.db.de/bizhub-api-secured-with-jwt", nil)
-	// ...
-	req.Header.Add("Authorization", "Bearer "+token.AccessToken)
-	response, err := client.Do(req)
-	//response, err := http.Get("https://gateway.hub.db.de/bizhub-api-secured-with-jwt?access_token=" + token.AccessToken)
-	//end replacement
+	client := oauthConfig.Client(ctx, token)
+	response, err := client.Get("https://gateway.hub.db.de/bizhub-api-secured-with-jwt")
 
 	if err != nil {
 		return nil, fmt.Errorf("failed getting user info: %s", err.Error())
